@@ -37,14 +37,14 @@ bool load_model_weights_custom(StyleTTSModel& model, const std::string& model_pa
         return false;
     }
 
-    // Читаем метаинформацию
+    
     file.read(reinterpret_cast<char*>(&model.vocab_size), sizeof(int));
     file.read(reinterpret_cast<char*>(&model.hidden_dim), sizeof(int));
     file.read(reinterpret_cast<char*>(&model.mel_channels), sizeof(int));
     file.read(reinterpret_cast<char*>(&model.max_seq_len), sizeof(int));
     file.read(reinterpret_cast<char*>(&model.num_speakers), sizeof(int));
 
-    // Читаем конфигурацию
+   
     file.read(reinterpret_cast<char*>(&model.config), sizeof(model.config));
 
     std::cout << "Model configuration:" << std::endl;
@@ -54,14 +54,14 @@ bool load_model_weights_custom(StyleTTSModel& model, const std::string& model_pa
     std::cout << "  max_seq_len: " << model.max_seq_len << std::endl;
     std::cout << "  num_speakers: " << model.num_speakers << std::endl;
 
-    // Функция для загрузки или пропуска компонента
+   
     auto load_component = [&](const std::string& component_name,
                               std::map<std::string, struct ggml_tensor*>& weights) -> bool {
         int num_tensors;
         file.read(reinterpret_cast<char*>(&num_tensors), sizeof(int));
 
         if (components_to_load.count(component_name) == 0) {
-            // Пропускаем тензоры компонента
+            
             for (int i = 0; i < num_tensors; ++i) {
                 int name_len;
                 file.read(reinterpret_cast<char*>(&name_len), sizeof(int));
