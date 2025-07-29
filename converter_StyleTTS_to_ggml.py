@@ -225,3 +225,139 @@ def analyze_pytorch_model(model_path, config_path):
     """
     print(f"Analyzing PyTorch model: {model_path}")
     
+    # ====================================================
+    from munch import Munch
+    from models import load_ASR_models, load_F0_models, build_model
+
+    config = yaml.safe_load(open(config_path))
+
+    text_aligner = load_ASR_models(config.get('ASR_path'), config.get('ASR_config'))
+    pitch_extractor = load_F0_models(config.get('F0_path'))
+
+    model = build_model(Munch(config['model_params']), text_aligner, pitch_extractor)
+
+    checkpoint = torch.load(model_path, map_location='cpu')
+    net = checkpoint['net']
+    # ====================================================
+    
+    print("\nModel structure:")
+    print("-" * 50)
+    
+    def print_structure(state_dict, prefix="", level=0):
+        indent = "  " * level
+        for key, value in state_dict.items():
+            full_key = f"{prefix}.{key}" if prefix else key
+            if isinstance(value, torch.Tensor):
+                print(f"{indent}{full_key}: {value.shape} ({value.dtype})")
+            elif isinstance(value, dict):
+                print(f"{indent}{full_key}:")
+                print_structure(value, full_key, level + 1)
+            else:
+                print(f"{indent}{full_key}: {type(value)}")
+    
+    print_structure(net)
+    print("-" * 50)
+    
+    def count_params(state_dict):
+        count = 0
+        for value in state_dict.values():
+            if isinstance(value, torch.Tensor):
+                count += value.numel()
+            elif isinstance(value, dict):
+                count += count_params(value)
+        return count
+    
+    total_params = count_params(net)
+    print(f"Total parameters: {total_params}")
+
+
+def extract_styletts_components(model_path, config_path):
+    """
+    Extracts and groups StyleTTS components by purpose
+    """
+    from munch import Munch
+    from models import load_ASR_models, load_F0_models, build_model
+
+    config = yaml.safe_load(open(config_path))
+
+    text_aligner = load_ASR_models(config.get('ASR_path'), config.get('ASR_config'))
+    pitch_extractor = load_F0_models(config.get('F0_path'))
+
+    model = build_model(Munch(config['model_params']), text_aligner, pitch_extractor)
+
+    checkpoint = torch.load(model_path, map_location='cpu')
+    net = checkpoint['net']
+    
+    for component_name, component_state_dict in net.items():
+        if component_state_dict:
+            print(f"\n{component_name.upper()}:")
+            
+            def print_component_structure(state_dict, prefix="", level=0):
+                indent = "  " * level
+                for key, value in state_dict.items():
+                    full_key = f"{prefix}.{key}" if prefix else key
+                    if isinstance(value, torch.Tensor):
+                        print(f"{indent}{full_key}: {value.shape}")
+                    elif isinstance(value, dict):
+                        print(f"{indent}{full_key}:")
+                        print_component_structure(value, full_key, level + 1)
+            
+            print_component_structure(component_state_dict)
+
+
+def create_ggml_model_template(output_path):
+    """
+    Creates a GGML model template with correct dimensions
+    """
+    config = {
+        'vocab_size': 80,
+        'hidden_dim': 512,
+        'mel_channels': 80,
+        'max_seq_len': 1000,
+    }
+    
+    with open(output_path, 'wb') as f:
+        f.write(struct.pack('i', config['vocab_size']))
+        f.write(struct.pack('i', config['hidden_dim']))
+        f.write(struct.pack('i', config['mel_channels']))
+        f.write(struct.pack('i', config['max_seq_len']))
+        
+        def write_random_tensor(shape, name):
+            tensor = np.random.randn(*shape).astype(np.float32)
+            print(f"Writing {name}: shape {shape}")
+            f.write(tensor.tobytes())
+        
+        write_random_tensor((config['hidden_dim'], config['vocab_size']), 'text_encoder_weights')
+        write_random_tensor((1, config['hidden_dim']), 'duration_predictor_weights')
+        write_random_tensor((1, config['hidden_dim']), 'pitch_predictor_weights')
+        write_random_tensor((config['mel_channels'], config['hidden_dim']), 'decoder_weights')
+        write_random_tensor((config['mel_channels'], config['mel_channels']), 'postnet_weights')
+    
+    print(f"Template model created: {output_path}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Convert StyleTTS PyTorch model to GGML format')
+    parser.add_argument('--input', '-i', required=True, help='Input PyTorch model path')
+    parser.add_argument('--output', '-o', required=True, help='Output GGML model path')
+    parser.add_argument('--config', '-c', required=True, help='Path to config_*.yml')
+    parser.add_argument('--analyze', '-a', action='store_true', help='Analyze model structure')
+    parser.add_argument('--extract', '-e', action='store_true', help='Extract and group components')
+    parser.add_argument('--template', '-t', action='store_true', help='Create template model')
+    
+    args = parser.parse_args()
+    
+    if args.analyze:
+        analyze_pytorch_model(args.input, args.config)
+    
+    if args.extract:
+        extract_styletts_components(args.input, args.config)
+    
+    if args.template:
+        create_ggml_model_template(args.output)
+    else:
+        convert_pytorch_to_ggml(args.input, args.config, args.output)
+
+
+if __name__ == "__main__":
+    main()
