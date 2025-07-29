@@ -109,8 +109,7 @@ bool load_model_weights_custom(StyleTTSModel& model, const std::string& model_pa
             for (int j = 0; j < n_dims; ++j)
                 file.read(reinterpret_cast<char*>(&dims[j]), sizeof(int64_t));
 
-			// std::reverse(dims.begin(), dims.end()); // инверсия осей если тензоры из Python были сохранены в (float32, C-order)
-			// так как GGML интерпретирует размерности в обратном порядке,
+	    // std::reverse(dims.begin(), dims.end()); 
 
             struct ggml_tensor* tensor;
             if (n_dims == 0) {
