@@ -142,7 +142,7 @@ bool load_model_weights_custom(StyleTTSModel& model, const std::string& model_pa
         return true;
     };
 
-    // Загружаем компоненты по выбору
+    
     if (!load_component("predictor", model.predictor_weights)) return false;
     if (!load_component("decoder", model.predictor_weights)) return false;
     if (!load_component("pitch_extractor", model.predictor_weights)) return false;
