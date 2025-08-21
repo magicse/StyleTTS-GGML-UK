@@ -16,10 +16,10 @@
 Example of usage
 #include "meldata.h"
 
-// In your main program:
+// In main program:
 struct ggml_context* ctx = ggml_init(...);
 std::vector<float> audio_data = load_your_audio(); // your audio loading
-int sample_rate = 44100; // or any other sample rate
+int sample_rate = 22400; // or any other sample rate
 
 struct ggml_tensor* mel_tensor = compute_mel_spectrogram_tensor(
     ctx,
