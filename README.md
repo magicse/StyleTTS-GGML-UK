@@ -8,4 +8,4 @@ Model conversion from Python to GGML format is required.
 
 The project is still in progress; build instructions will be added later.
 
-Emphasis will be on supporting the Ukrainian language
+For the Ukrainian language
